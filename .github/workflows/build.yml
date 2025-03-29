@@ -20,6 +20,9 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
+        sudo apt-get install -y software-properties-common
+        sudo add-apt-repository universe
+        sudo apt-get update
         sudo apt-get install -y \
           python3-pip \
           build-essential \
@@ -45,10 +48,9 @@ jobs:
           autoconf \
           libtool \
           pkg-config \
-          zlib1g-dev \
           libncurses5-dev \
           libncursesw5-dev \
-          libtinfo5 \
+          libtinfo-dev \
           cmake \
           wget \
           unzip
