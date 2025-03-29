@@ -74,13 +74,11 @@ jobs:
     
     - name: Clean up previous Android SDK installation
       run: |
-        rm -rf ~/.buildozer/android/platform/android-sdk
-        rm -rf ~/.buildozer/android/platform/android-ndk*
-        rm -rf ~/.buildozer/android/platform/cmdline-tools
+        rm -rf ~/.buildozer
+        mkdir -p ~/.buildozer/android/platform
     
     - name: Install Android SDK and NDK
       run: |
-        mkdir -p ~/.buildozer/android/platform
         cd ~/.buildozer/android/platform
         
         # Download and install Android Command Line Tools
