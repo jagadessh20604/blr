@@ -66,11 +66,11 @@ jobs:
         # Verify git installation
         git --version
     
-    - name: Install Buildozer, Core Python dependencies, and latest p4a
+    - name: Install Buildozer, Core Python dependencies, and p4a from master
       run: |
         python -m pip install --upgrade pip
-        # Install the latest available version of python-for-android
-        pip install --upgrade Cython==0.29.33 buildozer kivy Pillow python-for-android==2024.1.21
+        # Install p4a directly from the master branch on GitHub
+        pip install --upgrade Cython==0.29.33 buildozer kivy Pillow git+https://github.com/kivy/python-for-android.git
         # NOTE: We are NOT installing from requirements.txt here for the build environment
         # Buildozer will handle Android dependencies based on buildozer.spec
     
