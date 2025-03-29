@@ -72,6 +72,12 @@ jobs:
         pip install buildozer
         pip install -r requirements.txt
     
+    - name: Clean up previous Android SDK installation
+      run: |
+        rm -rf ~/.buildozer/android/platform/android-sdk
+        rm -rf ~/.buildozer/android/platform/android-ndk*
+        rm -rf ~/.buildozer/android/platform/cmdline-tools
+    
     - name: Install Android SDK and NDK
       run: |
         mkdir -p ~/.buildozer/android/platform
@@ -96,8 +102,8 @@ jobs:
         unzip android-ndk-r25b-linux.zip
         
         # Create symbolic links for buildozer
-        ln -s $ANDROID_HOME/android-sdk android-sdk
-        ln -s $ANDROID_HOME/android-ndk-r25b android-ndk
+        ln -sf $ANDROID_HOME/android-sdk android-sdk
+        ln -sf $ANDROID_HOME/android-ndk-r25b android-ndk
     
     - name: Configure buildozer
       run: |
