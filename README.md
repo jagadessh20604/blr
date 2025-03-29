@@ -62,6 +62,15 @@ To get the latest APK:
 - Android SDK (for local builds)
 - Android NDK (for local builds)
 
+## Build Process
+
+The Android APK is built using the following steps:
+1. Clean environment setup
+2. Android SDK and NDK installation
+3. Buildozer configuration
+4. APK compilation
+5. Artifact upload
+
 ## License
 
 MIT License 
