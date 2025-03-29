@@ -1,1 +1,1 @@
-# angalore-food-finder
+# bangalore-food-finder
