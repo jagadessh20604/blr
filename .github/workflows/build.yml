@@ -94,11 +94,31 @@ jobs:
         # Download and install Android NDK
         wget https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
         unzip android-ndk-r25b-linux.zip
+        
+        # Create symbolic links for buildozer
+        ln -s $ANDROID_HOME/android-sdk android-sdk
+        ln -s $ANDROID_HOME/android-ndk-r25b android-ndk
+    
+    - name: Configure buildozer
+      run: |
+        # Create buildozer.spec if it doesn't exist
+        if [ ! -f "buildozer.spec" ]; then
+          buildozer init
+        fi
+        
+        # Update buildozer.spec with correct paths
+        sed -i 's|android.sdk_path = .*|android.sdk_path = ~/.buildozer/android/platform/android-sdk|' buildozer.spec
+        sed -i 's|android.ndk_path = .*|android.ndk_path = ~/.buildozer/android/platform/android-ndk|' buildozer.spec
+        sed -i 's|android.api = .*|android.api = 31|' buildozer.spec
+        sed -i 's|android.minapi = .*|android.minapi = 21|' buildozer.spec
+        sed -i 's|android.ndk = .*|android.ndk = 25b|' buildozer.spec
     
     - name: Build APK
       env:
         TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
         ANDROID_HOME: ~/.buildozer/android/platform
+        ANDROID_SDK_ROOT: ~/.buildozer/android/platform/android-sdk
+        ANDROID_NDK_HOME: ~/.buildozer/android/platform/android-ndk
         PATH: $PATH:$ANDROID_HOME/cmdline-tools/latest/bin:/usr/bin
         LIBTOOLIZE: /usr/bin/libtoolize
         ACLOCAL: /usr/bin/aclocal
