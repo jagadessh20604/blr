@@ -46,6 +46,7 @@ jobs:
           libpq-dev \
           openjdk-11-jdk \
           autoconf \
+          automake \
           libtool \
           pkg-config \
           libncurses5-dev \
@@ -53,7 +54,13 @@ jobs:
           libtinfo-dev \
           cmake \
           wget \
-          unzip
+          unzip \
+          libffi-dev \
+          libssl-dev
+        
+        # Install libtool and its dependencies
+        sudo apt-get install -y libltdl-dev
+        sudo apt-get install -y libtool-bin
         
         # Verify git installation
         git --version
@@ -93,6 +100,10 @@ jobs:
         TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
         ANDROID_HOME: ~/.buildozer/android/platform
         PATH: $PATH:$ANDROID_HOME/cmdline-tools/latest/bin:/usr/bin
+        LIBTOOLIZE: /usr/bin/libtoolize
+        ACLOCAL: /usr/bin/aclocal
+        AUTOMAKE: /usr/bin/automake
+        AUTOCONF: /usr/bin/autoconf
       run: |
         which git
         git --version
