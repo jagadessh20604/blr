@@ -72,57 +72,44 @@ jobs:
         pip install buildozer
         pip install -r requirements.txt
     
-    - name: Clean up previous Android SDK installation
-      run: |
-        rm -rf ~/.buildozer
-        mkdir -p ~/.buildozer/android/platform
-    
-    - name: Install Android SDK and NDK
-      run: |
-        cd ~/.buildozer/android/platform
-        
-        # Download and install Android Command Line Tools
-        wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip commandlinetools-linux-9477386_latest.zip
-        mkdir -p cmdline-tools/latest
-        mv cmdline-tools/* cmdline-tools/latest/ 2>/dev/null || true
-        
-        # Set up environment variables
-        export ANDROID_HOME=~/.buildozer/android/platform
-        export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
-        
-        # Accept licenses and install required packages
-        yes | sdkmanager --licenses
-        sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0"
-        
-        # Download and install Android NDK
-        wget https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-        unzip android-ndk-r25b-linux.zip
-        
-        # Create symbolic links for buildozer
-        ln -sf $ANDROID_HOME/android-sdk android-sdk
-        ln -sf $ANDROID_HOME/android-ndk-r25b android-ndk
-    
-    - name: Configure buildozer
+    - name: Prepare buildozer configuration
       run: |
         # Create buildozer.spec if it doesn't exist
         if [ ! -f "buildozer.spec" ]; then
           buildozer init
         fi
         
-        # Update buildozer.spec with correct paths
-        sed -i 's|android.sdk_path = .*|android.sdk_path = ~/.buildozer/android/platform/android-sdk|' buildozer.spec
-        sed -i 's|android.ndk_path = .*|android.ndk_path = ~/.buildozer/android/platform/android-ndk|' buildozer.spec
+        # Update buildozer.spec
         sed -i 's|android.api = .*|android.api = 31|' buildozer.spec
         sed -i 's|android.minapi = .*|android.minapi = 21|' buildozer.spec
         sed -i 's|android.ndk = .*|android.ndk = 25b|' buildozer.spec
+        
+        # Explicitly set requirements
+        if ! grep -q "requirements =" buildozer.spec; then
+          echo "requirements = python3,kivy,pillow,streamlit,together" >> buildozer.spec
+        else
+          sed -i 's|requirements = .*|requirements = python3,kivy,pillow,streamlit,together|' buildozer.spec
+        fi
+        
+        # Set app title and package name
+        sed -i 's|title = .*|title = Bangalore Food Finder|' buildozer.spec
+        sed -i 's|package.name = .*|package.name = foodfinder|' buildozer.spec
+        
+        # Set source.dir
+        sed -i 's|source.dir = .*|source.dir = .|' buildozer.spec
+        
+        # Set the main file
+        sed -i 's|source.include_exts = .*|source.include_exts = py,png,jpg,kv,atlas,json|' buildozer.spec
+        
+        # Check if main.py exists, if not create it
+        if [ ! -f "main.py" ]; then
+          cp food_app.py main.py
+        fi
     
     - name: Build APK
       env:
         TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
         ANDROID_HOME: ~/.buildozer/android/platform
-        ANDROID_SDK_ROOT: ~/.buildozer/android/platform/android-sdk
-        ANDROID_NDK_HOME: ~/.buildozer/android/platform/android-ndk
         PATH: $PATH:$ANDROID_HOME/cmdline-tools/latest/bin:/usr/bin
         LIBTOOLIZE: /usr/bin/libtoolize
         ACLOCAL: /usr/bin/aclocal
@@ -131,14 +118,19 @@ jobs:
       run: |
         which git
         git --version
+        
+        # Let buildozer handle the SDK and NDK installation
         buildozer android debug
     
     - name: Check for APK
       run: |
-        if [ ! -f "bin/*.apk" ]; then
+        if [ -z "$(find bin -name '*.apk' 2>/dev/null)" ]; then
           echo "APK file not found!"
-          ls -la bin/
+          ls -la bin/ || echo "bin directory does not exist"
           exit 1
+        else
+          echo "APK file found:"
+          find bin -name "*.apk"
         fi
     
     - name: Upload APK
