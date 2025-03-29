@@ -82,7 +82,7 @@ jobs:
         # Update buildozer.spec
         sed -i 's|android.api = .*|android.api = 31|' buildozer.spec
         sed -i 's|android.minapi = .*|android.minapi = 21|' buildozer.spec
-        sed -i 's|android.ndk = .*|android.ndk = 23c|' buildozer.spec
+        sed -i 's|android.ndk = .*|android.ndk = 25b|' buildozer.spec
         
         # Explicitly set requirements compatible with Kivy/Buildozer
         if ! grep -q "requirements =" buildozer.spec; then
