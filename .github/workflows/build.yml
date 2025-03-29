@@ -70,7 +70,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install --upgrade Cython==0.29.33
         pip install buildozer
-        pip install -r requirements.txt
+        # Install Kivy and Pillow separately as they are needed for the Kivy app structure
+        pip install kivy Pillow
+        # Install other requirements, excluding streamlit and together
+        pip install -r <(grep -vE 'streamlit|together' requirements.txt)
     
     - name: Prepare buildozer configuration
       run: |
@@ -84,11 +87,11 @@ jobs:
         sed -i 's|android.minapi = .*|android.minapi = 21|' buildozer.spec
         sed -i 's|android.ndk = .*|android.ndk = 25b|' buildozer.spec
         
-        # Explicitly set requirements
+        # Explicitly set requirements compatible with Kivy/Buildozer
         if ! grep -q "requirements =" buildozer.spec; then
-          echo "requirements = python3,kivy,pillow,streamlit,together" >> buildozer.spec
+          echo "requirements = python3,kivy,pillow" >> buildozer.spec
         else
-          sed -i 's|requirements = .*|requirements = python3,kivy,pillow,streamlit,together|' buildozer.spec
+          sed -i 's|requirements = .*|requirements = python3,kivy,pillow|' buildozer.spec
         fi
         
         # Set app title and package name
@@ -98,35 +101,51 @@ jobs:
         # Set source.dir
         sed -i 's|source.dir = .*|source.dir = .|' buildozer.spec
         
-        # Set the main file
-        sed -i 's|source.include_exts = .*|source.include_exts = py,png,jpg,kv,atlas,json|' buildozer.spec
+        # Set the main file and include extensions
+        sed -i 's|source.include_exts = .*|source.include_exts = py,png,jpg,kv,atlas,json,pem|' buildozer.spec
         
-        # Check if main.py exists, if not create it
+        # Create a placeholder Kivy main.py if it doesn't exist
         if [ ! -f "main.py" ]; then
-          cp food_app.py main.py
+          echo "from kivy.app import App" > main.py
+          echo "from kivy.uix.label import Label" >> main.py
+          echo "" >> main.py
+          echo "class FoodFinderApp(App):" >> main.py
+          echo "    def build(self):" >> main.py
+          echo "        # Replace this with your actual Kivy app UI" >> main.py
+          echo "        return Label(text='Food Finder App (Kivy)')" >> main.py
+          echo "" >> main.py
+          echo "if __name__ == '__main__':" >> main.py
+          echo "    FoodFinderApp().run()" >> main.py
         fi
     
     - name: Build APK
       env:
         TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
         ANDROID_HOME: ~/.buildozer/android/platform
-        PATH: $PATH:$ANDROID_HOME/cmdline-tools/latest/bin:/usr/bin
+        PATH: $PATH:$ANDROID_HOME/cmdline-tools/latest/bin:/usr/bin:/home/runner/.local/bin
         LIBTOOLIZE: /usr/bin/libtoolize
         ACLOCAL: /usr/bin/aclocal
         AUTOMAKE: /usr/bin/automake
         AUTOCONF: /usr/bin/autoconf
       run: |
+        # Add local bin to PATH for pyproject-build script
+        export PATH="/home/runner/.local/bin:$PATH"
+        
         which git
         git --version
         
         # Let buildozer handle the SDK and NDK installation
-        buildozer android debug
+        # Use log_level=2 for more detailed output
+        buildozer android debug log_level=2
     
     - name: Check for APK
       run: |
         if [ -z "$(find bin -name '*.apk' 2>/dev/null)" ]; then
           echo "APK file not found!"
           ls -la bin/ || echo "bin directory does not exist"
+          # Check buildozer logs for errors
+          echo "--- Last 50 lines of buildozer log ---"
+          tail -n 50 .buildozer/logs/buildozer.log || echo "Could not read buildozer log."
           exit 1
         else
           echo "APK file found:"
@@ -137,4 +156,11 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
-        path: bin/*.apk 
+        path: bin/*.apk
+
+    - name: Upload Buildozer logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: buildozer-logs
+        path: .buildozer/logs/ 
