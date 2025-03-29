@@ -54,6 +54,9 @@ jobs:
           cmake \
           wget \
           unzip
+        
+        # Verify git installation
+        git --version
     
     - name: Install Python dependencies
       run: |
@@ -89,8 +92,10 @@ jobs:
       env:
         TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
         ANDROID_HOME: ~/.buildozer/android/platform
-        PATH: $PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+        PATH: $PATH:$ANDROID_HOME/cmdline-tools/latest/bin:/usr/bin
       run: |
+        which git
+        git --version
         buildozer android debug
     
     - name: Check for APK
