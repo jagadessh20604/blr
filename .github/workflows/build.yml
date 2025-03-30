@@ -100,6 +100,9 @@ jobs:
             Pillow \
             python-for-android==2024.1.21 # Use the latest stable p4a
 
+        # *** Add step to comment out the interactive root prompt in Buildozer source ***
+        RUN sed -i "s/^\s*cont = input(.*)/#&/" /usr/local/lib/python3.9/dist-packages/buildozer/__init__.py
+
         # Set up a non-root user (good practice for containers)
         RUN useradd -ms /bin/bash builduser
         USER builduser
