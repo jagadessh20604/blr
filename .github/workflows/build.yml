@@ -100,11 +100,12 @@ jobs:
             Pillow \
             python-for-android==2024.1.21 # Use the latest stable p4a
 
-        # *** Add step to comment out the interactive root prompt in Buildozer source ***
-        RUN sed -i "s/^\s*cont = input(.*)/#&/" /usr/local/lib/python3.9/dist-packages/buildozer/__init__.py
-
         # Set up a non-root user (good practice for containers)
         RUN useradd -ms /bin/bash builduser
+        
+        # Create global .buildozer dir and set permissions BEFORE switching user
+        RUN mkdir /home/builduser/.buildozer && chown -R builduser:builduser /home/builduser/.buildozer
+        
         USER builduser
         WORKDIR /home/builduser/app
 
@@ -187,17 +188,15 @@ jobs:
         
     - name: Build APK inside Docker container
       run: |
-        # Run buildozer inside the container AS ROOT to ensure permissions on the mounted volume
+        # Run buildozer inside the container as builduser
         # Mount the current directory (source code) into /home/builduser/app in the container
         # Pass the TOGETHER_API_KEY as an environment variable
-        # Export BUILDOZER_ALLOW_ROOT=1 inside the bash command to bypass the root warning/prompt
         docker run --rm \
-          -u root \
           -w /home/builduser/app \
           -v "$(pwd)":/home/builduser/app \
           -e TOGETHER_API_KEY="${{ secrets.TOGETHER_API_KEY }}" \
           foodfinder-build:latest \
-          bash -c "export BUILDOZER_ALLOW_ROOT=1 && buildozer android debug log_level=2"
+          bash -c "buildozer android debug log_level=2"
           
     - name: Check for APK
       run: |

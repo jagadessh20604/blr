@@ -136,6 +136,11 @@ st.markdown("""
 # Custom CSS for mobile-friendly design
 st.markdown("""
 <style>
+    /* Hide Streamlit default menu and footer */
+    #MainMenu {visibility: hidden;} 
+    footer {visibility: hidden;}
+    header {visibility: hidden;} /* Hide header bar too for cleaner look */
+    
     /* Main container */
     .stApp {
         background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
