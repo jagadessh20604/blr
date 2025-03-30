@@ -3,11 +3,24 @@ import os
 from together import Together
 from PIL import Image
 import base64
+import time # To add slight delay
+
+# --- Try to import the google search function --- 
+try:
+    from google_search import perform_google_search
+    google_search_available = True
+except ImportError:
+    print("Warning: google_search.py not found or contains errors. Web search disabled.")
+    google_search_available = False
+    # Define a placeholder if import fails
+    def perform_google_search(*args, **kwargs):
+        return "" 
 
 # --- Core Logic ---
-def get_food_recommendations(budget, num_people, food_type, location, restaurant):
+def get_food_recommendations(budget, num_people, food_type, location, restaurant, google_api_key, google_cse_id):
     """
-    Generates food recommendations using the Together AI API based on user inputs.
+    Generates food recommendations using the Together AI API based on user inputs,
+    optionally enhanced with Google Search results.
     """
     if not client:
         return "Error: Could not initialize the AI Service. Please check API key or network."
@@ -22,8 +35,24 @@ def get_food_recommendations(budget, num_people, food_type, location, restaurant
     except ValueError:
         return "Budget and Number of People must be valid numbers."
 
+    # --- Perform Google Search --- 
+    google_search_results = "" # Initialize
+    search_query = f"Best {food_type} deals Bangalore INR {budget} for {num_people}"
+    if restaurant:
+        search_query += f" at {restaurant}"
+    if location:
+        search_query += f" near {location}"
+        
+    if google_search_available and google_api_key and google_cse_id:
+        print(f"Performing Google Search for: {search_query}") # Log search
+        google_search_results = perform_google_search(search_query, google_api_key, google_cse_id, num_results=3)
+        time.sleep(0.5) # Small delay after search
+    elif google_search_available and (not google_api_key or not google_cse_id):
+        print("Google API Key or CSE ID missing, skipping web search.")
+    
+    # --- Construct LLM Prompt --- 
     prompt = f"""
-    You are a Bangalore food recommendation expert. Your goal is to suggest the best food options, especially combos, based on the user's criteria.
+    You are a Bangalore food recommendation expert. Your goal is to suggest the best food options, especially combos, based on the user's criteria and potentially recent web search results.
 
     User Criteria:
     - Budget: INR {budget:.2f} total
@@ -43,8 +72,13 @@ def get_food_recommendations(budget, num_people, food_type, location, restaurant
         prompt += "- Restaurant: Any suitable restaurant\n"
         prompt += "\nInstructions: Find the best value-for-money options and combos across Bangalore matching the criteria. Suggest 3-5 diverse options from different well-regarded restaurants known for the specified food type."
 
+    # --- Add Google Search Results to Prompt (if available) ---
+    if google_search_results:
+        prompt += google_search_results
+        prompt += "\nConsider these recent web results when making your recommendations, but prioritize matching the user's core criteria (budget, people, food type, location/restaurant). Don't just repeat the search results."
+
     prompt += f"""
-    Output Format:
+    \n    Output Format:
     Format your response in the following way for each recommendation:
 
     🏪 [Restaurant Name]
@@ -58,7 +92,7 @@ def get_food_recommendations(budget, num_people, food_type, location, restaurant
     💰 Price Range: [Price range]
     
     ✨ Why We Recommend:
-    [Brief explanation of why this is a good option]
+    [Brief explanation of why this is a good option, potentially referencing web results if relevant and helpful]
     
     ---
     
@@ -66,13 +100,16 @@ def get_food_recommendations(budget, num_people, food_type, location, restaurant
     If no suitable options are found, state that clearly.
     """
 
+    # --- Call LLM --- 
     try:
+        print("Calling Together AI...") # Log LLM call
         response = client.chat.completions.create(
             model="mistralai/Mixtral-8x7B-Instruct-v0.1",
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=1024,
+            max_tokens=1500, # Increased slightly for potentially longer answers with web context
             temperature=0.7,
         )
+        print("Received response from Together AI.") # Log response received
 
         if response and response.choices:
             return response.choices[0].message.content.strip()
@@ -84,18 +121,24 @@ def get_food_recommendations(budget, num_people, food_type, location, restaurant
         return f"An error occurred while fetching recommendations: {e}. Please check your API key and network connection."
 
 # --- Configuration ---
-# Get API key from environment variable
-API_KEY = os.getenv("TOGETHER_API_KEY")
-if not API_KEY:
-    st.error("Please set the TOGETHER_API_KEY environment variable")
+# Get API keys and IDs from environment variables
+TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")
+
+if not TOGETHER_API_KEY:
+    st.error("CRITICAL: Please set the TOGETHER_API_KEY environment variable!")
     st.stop()
+if not GOOGLE_API_KEY or not GOOGLE_CSE_ID:
+    st.warning("Optional: GOOGLE_API_KEY or GOOGLE_CSE_ID not set. Web search enhancements disabled. Set them for potentially better results.")
 
 # Initialize the Together AI client
 try:
-    client = Together(api_key=API_KEY)
+    client = Together(api_key=TOGETHER_API_KEY)
 except Exception as e:
     st.error(f"Error initializing Together AI client: {e}")
-    st.stop()
+    client = None # Ensure client is None if init fails
+    # Don't stop here, allow the app to load but show errors
 
 # --- Streamlit Interface ---
 st.set_page_config(
@@ -305,7 +348,7 @@ with st.form("food_finder_form"):
 if submit_button:
     with st.spinner("Finding the best food options for you..."):
         try:
-            recommendations = get_food_recommendations(budget, num_people, food_type, location, restaurant)
+            recommendations = get_food_recommendations(budget, num_people, food_type, location, restaurant, GOOGLE_API_KEY, GOOGLE_CSE_ID)
             
             # Split recommendations into cards
             rec_cards = recommendations.split('---')
