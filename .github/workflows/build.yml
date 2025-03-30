@@ -187,14 +187,14 @@ jobs:
         # Run buildozer inside the container AS ROOT to ensure permissions on the mounted volume
         # Mount the current directory (source code) into /home/builduser/app in the container
         # Pass the TOGETHER_API_KEY as an environment variable
+        # Set BUILDOZER_ALLOW_ROOT=1 to bypass the root warning/prompt
         docker run --rm \
           -u root \
           -v "$(pwd)":/home/builduser/app \
           -e TOGETHER_API_KEY="${{ secrets.TOGETHER_API_KEY }}" \
+          -e BUILDOZER_ALLOW_ROOT=1 \
           foodfinder-build:latest \
           bash -c "# Change ownership of the mounted volume content to builduser first, then run buildozer
-                   # This allows buildozer (run as builduser by default in spec) to write cache etc.
-                   # Run buildozer itself as root to avoid permission errors creating .buildozer
                    chown -R builduser:builduser /home/builduser/app && \
                    cd /home/builduser/app && \
                    buildozer android debug log_level=2"
