@@ -4,44 +4,59 @@ from together import Together
 from google_search import perform_google_search
 
 # Initialize API keys and client
-try:
-    # Get API keys from Streamlit secrets
-    TOGETHER_API_KEY = st.secrets["TOGETHER_API_KEY"]
-    GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
-    GOOGLE_CSE_ID = st.secrets["GOOGLE_CSE_ID"]
-    
-    # Initialize Together AI client
+def get_api_keys():
+    """Get API keys from Streamlit secrets or environment variables."""
     try:
-        client = Together(api_key=TOGETHER_API_KEY)
+        # Try to get from Streamlit secrets first
+        return {
+            "TOGETHER_API_KEY": st.secrets["TOGETHER_API_KEY"],
+            "GOOGLE_API_KEY": st.secrets["GOOGLE_API_KEY"],
+            "GOOGLE_CSE_ID": st.secrets["GOOGLE_CSE_ID"]
+        }
     except Exception as e:
-        st.error(f"""
-        ⚠️ Error initializing Together AI client!
-        
-        Please check your Together API key in Streamlit secrets:
-        
-        ```toml
-        [secrets]
-        TOGETHER_API_KEY = "your_together_api_key"
-        ```
-        
-        Error details: {str(e)}
-        """)
-        st.stop()
-        
-except KeyError as e:
+        st.warning(f"Could not access Streamlit secrets: {str(e)}")
+        # Fallback to environment variables
+        return {
+            "TOGETHER_API_KEY": os.getenv("TOGETHER_API_KEY"),
+            "GOOGLE_API_KEY": os.getenv("GOOGLE_API_KEY"),
+            "GOOGLE_CSE_ID": os.getenv("GOOGLE_CSE_ID")
+        }
+
+# Get API keys
+api_keys = get_api_keys()
+
+# Check if any keys are missing
+missing_keys = [key for key, value in api_keys.items() if not value]
+if missing_keys:
     st.error(f"""
-    ⚠️ Missing API Keys in Streamlit Secrets!
+    ⚠️ Missing API Keys!
     
-    Please add the following secrets to your Streamlit Cloud configuration:
+    The following keys are missing:
+    {', '.join(missing_keys)}
+    
+    Please add them to your Streamlit Cloud configuration:
     
     ```toml
     [secrets]
-    TOGETHER_API_KEY = "your_together_api_key"
-    GOOGLE_API_KEY = "your_google_api_key"
-    GOOGLE_CSE_ID = "your_google_cse_id"
+    TOGETHER_API_KEY = "f01a0276256f368dc64e80d6ebad5a96d7c4b58c7f1bf54c9d7ef5475df2a1b9"
+    GOOGLE_API_KEY = "AIzaSyCW7TvK3EHOqGX1y_4CgDItLucDYwCHaKQ"
+    GOOGLE_CSE_ID = "c705d96c7e4dd44f8"
     ```
     
     You can add these in your Streamlit Cloud dashboard under Settings > Secrets.
+    """)
+    st.stop()
+
+# Initialize Together AI client
+try:
+    client = Together(api_key=api_keys["TOGETHER_API_KEY"])
+except Exception as e:
+    st.error(f"""
+    ⚠️ Error initializing Together AI client!
+    
+    Error details: {str(e)}
+    
+    Please check if your Together API key is valid.
     """)
     st.stop()
 
