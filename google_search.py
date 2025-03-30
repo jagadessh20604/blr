@@ -202,11 +202,27 @@ def perform_google_search(query: str, num_results: int = 10, scrape_details: boo
     Returns:
         List[Dict[str, str]]: List of dictionaries containing search results and scraped details
     """
-    api_key = st.secrets["GOOGLE_API_KEY"]
-    cse_id = st.secrets["GOOGLE_CSE_ID"]
+    try:
+        api_key = st.secrets["GOOGLE_API_KEY"]
+        cse_id = st.secrets["GOOGLE_CSE_ID"]
+    except KeyError:
+        st.error("""
+        ⚠️ Missing Google API credentials in Streamlit Secrets!
+        
+        Please add the following secrets to your Streamlit Cloud configuration:
+        
+        ```toml
+        [secrets]
+        GOOGLE_API_KEY = "your_google_api_key"
+        GOOGLE_CSE_ID = "your_google_cse_id"
+        ```
+        
+        You can add these in your Streamlit Cloud dashboard under Settings > Secrets.
+        """)
+        return []
 
     if not api_key or not cse_id:
-        print("Error: Google API key or CSE ID not found in Streamlit secrets")
+        st.error("Google API credentials are empty. Please check your Streamlit secrets configuration.")
         return []
 
     # 1. Extract Location
