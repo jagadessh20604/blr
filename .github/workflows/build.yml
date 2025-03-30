@@ -111,8 +111,6 @@ jobs:
         ENV AUTOMAKE=/usr/bin/automake
         ENV AUTOCONF=/usr/bin/autoconf
         ENV PATH="/home/builduser/.local/bin:${PATH}"
-        # Ensure buildozer uses the Python installed in the container
-        ENV PYTHON_PATH=$(which python3)
 
         # Copy buildozer spec and main.py placeholder logic
         COPY --chown=builduser:builduser buildozer.spec .
