@@ -3,10 +3,10 @@ import os
 from together import Together
 from google_search import perform_google_search
 
-# Get API keys
-TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")
+# Get API keys from Streamlit secrets
+TOGETHER_API_KEY = st.secrets["TOGETHER_API_KEY"]
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+GOOGLE_CSE_ID = st.secrets["GOOGLE_CSE_ID"]
 
 # Initialize Together AI client
 client = Together(api_key=TOGETHER_API_KEY)

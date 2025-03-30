@@ -7,6 +7,7 @@ import re
 from googleapiclient.discovery import build
 import json
 import sys # Import sys module
+import streamlit as st
 
 def extract_price_range(text: str) -> str:
     """Extract price range from text using common patterns."""
@@ -201,11 +202,11 @@ def perform_google_search(query: str, num_results: int = 10, scrape_details: boo
     Returns:
         List[Dict[str, str]]: List of dictionaries containing search results and scraped details
     """
-    api_key = os.getenv('GOOGLE_API_KEY')
-    cse_id = os.getenv('GOOGLE_CSE_ID')
+    api_key = st.secrets["GOOGLE_API_KEY"]
+    cse_id = st.secrets["GOOGLE_CSE_ID"]
 
     if not api_key or not cse_id:
-        print("Error: Google API key or CSE ID not found in environment variables")
+        print("Error: Google API key or CSE ID not found in Streamlit secrets")
         return []
 
     # 1. Extract Location
