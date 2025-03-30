@@ -36,15 +36,7 @@ if missing_keys:
     
     Please add them to your Streamlit Cloud configuration:
     
-    ```toml
-    [secrets]
-    TOGETHER_API_KEY = "f01a0276256f368dc64e80d6ebad5a96d7c4b58c7f1bf54c9d7ef5475df2a1b9"
-    GOOGLE_API_KEY = "AIzaSyCW7TvK3EHOqGX1y_4CgDItLucDYwCHaKQ"
-    GOOGLE_CSE_ID = "c705d96c7e4dd44f8"
-    ```
     
-    You can add these in your Streamlit Cloud dashboard under Settings > Secrets.
-    """)
     st.stop()
 
 # Initialize Together AI client
