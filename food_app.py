@@ -76,6 +76,9 @@ if missing_keys:
 try:
     os.environ["TOGETHER_API_KEY"] = api_keys["TOGETHER_API_KEY"]
     client = Together()
+    # Add debug logs
+    st.write(f"DEBUG: Client type: {type(client)}") 
+    st.write(f"DEBUG: Client attributes: {dir(client)}")
 except Exception as e:
     st.error(f"""
     ⚠️ Error initializing Together AI client!
