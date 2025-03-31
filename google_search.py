@@ -203,22 +203,27 @@ def perform_google_search(query: str, num_results: int = 10, scrape_details: boo
         List[Dict[str, str]]: List of dictionaries containing search results and scraped details
     """
     try:
-        api_key = st.secrets["GOOGLE_API_KEY"]
-        cse_id = st.secrets["GOOGLE_CSE_ID"]
-    except KeyError:
-        st.error("""
-        ⚠️ Missing Google API credentials in Streamlit Secrets!
-        
-        Please add the following secrets to your Streamlit Cloud configuration:
-        
-        ```toml
-        [secrets]
-        GOOGLE_API_KEY = "your_google_api_key"
-        GOOGLE_CSE_ID = "your_google_cse_id"
-        ```
-        
-        You can add these in your Streamlit Cloud dashboard under Settings > Secrets.
-        """)
+        try:
+            api_key = st.secrets["GOOGLE_API_KEY"]
+            cse_id = st.secrets["GOOGLE_CSE_ID"]
+        except KeyError as e:
+            st.error(f"""
+            ⚠️ Missing Google API credentials in Streamlit Secrets!
+            
+            Could not find secret key: {str(e)}
+            
+            Please add the following secrets to your Streamlit Cloud configuration:
+            
+            ```toml
+            GOOGLE_API_KEY = "your_google_api_key"
+            GOOGLE_CSE_ID = "your_google_cse_id"
+            ```
+            
+            You can add these in your Streamlit Cloud dashboard under Settings > Secrets.
+            """)
+            return []
+    except Exception as e:
+        st.error(f"Could not access Streamlit secrets: {str(e)}")
         return []
 
     if not api_key or not cse_id:

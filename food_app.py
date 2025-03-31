@@ -7,14 +7,30 @@ from google_search import perform_google_search
 def get_api_keys():
     """Get API keys from Streamlit secrets or environment variables."""
     try:
+        # Debug logging
+        st.write("Attempting to access Streamlit secrets...")
+        
         # Try to get from Streamlit secrets first
-        return {
-            "TOGETHER_API_KEY": st.secrets["TOGETHER_API_KEY"],
-            "GOOGLE_API_KEY": st.secrets["GOOGLE_API_KEY"],
-            "GOOGLE_CSE_ID": st.secrets["GOOGLE_CSE_ID"]
-        }
+        try:
+            keys = {
+                "TOGETHER_API_KEY": st.secrets["TOGETHER_API_KEY"],
+                "GOOGLE_API_KEY": st.secrets["GOOGLE_API_KEY"],
+                "GOOGLE_CSE_ID": st.secrets["GOOGLE_CSE_ID"]
+            }
+            st.write("Successfully retrieved keys from secrets")
+            return keys
+        except KeyError as e:
+            st.warning(f"Could not find secret key: {str(e)}")
+            st.write("Falling back to environment variables...")
+            # Fallback to environment variables
+            return {
+                "TOGETHER_API_KEY": os.getenv("TOGETHER_API_KEY"),
+                "GOOGLE_API_KEY": os.getenv("GOOGLE_API_KEY"),
+                "GOOGLE_CSE_ID": os.getenv("GOOGLE_CSE_ID")
+            }
     except Exception as e:
         st.warning(f"Could not access Streamlit secrets: {str(e)}")
+        st.write("Falling back to environment variables...")
         # Fallback to environment variables
         return {
             "TOGETHER_API_KEY": os.getenv("TOGETHER_API_KEY"),
@@ -49,7 +65,8 @@ if missing_keys:
 
 # Initialize Together AI client
 try:
-    client = Together(api_key=api_keys["TOGETHER_API_KEY"])
+    os.environ["TOGETHER_API_KEY"] = api_keys["TOGETHER_API_KEY"]
+    client = Together()
 except Exception as e:
     st.error(f"""
     ⚠️ Error initializing Together AI client!
@@ -205,7 +222,7 @@ Separate each recommendation with "---"."""
             temperature=0.7,
         )
         
-        if response and response.choices:
+        if response and hasattr(response, 'choices') and response.choices:
             return response.choices[0].message.content.strip()
         else:
             return "Error: No response received from Together AI"
