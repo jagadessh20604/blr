@@ -5,6 +5,7 @@ import json
 from google_search import perform_google_search
 import google_search
 import importlib.metadata
+import re
 
 # Add debug log for library version using importlib.metadata
 # st.write(f"DEBUG: Together library version: {importlib.metadata.version('together')}") # Commented out
@@ -174,24 +175,26 @@ def get_food_recommendations(food_query: str, budget: float, num_people: int,
             search_info += "-" * 50 + "\n"
 
         # Create prompt for Together AI
-        prompt = f"""You are a food recommendation expert. Your task is to suggest the best food combinations that fit within the user's budget, based on web search results.
+        prompt = f"""You are a food recommendation expert. Your task is to suggest the best food combinations that fit strictly within the user's budget, based *only* on the provided web search results.
+
+**CRITICAL BUDGET INSTRUCTION:** You MUST ensure the 'Total Cost' for any recommended combination is LESS THAN OR EQUAL TO the user's budget of ₹{budget} for {num_people} people. If you cannot find combinations that meet the budget based *only* on the prices mentioned or strongly implied in the Search Results Provided, DO NOT suggest combinations that exceed the budget. Instead, clearly state that you couldn't find options within the budget based on the available information.
 
 CORE REQUIREMENTS:
 1. Focus on suggesting food combinations that:
-   - Match the user's food type preference
-   - Stay within the specified budget of ₹{budget} for {num_people} people
-   - Are available at restaurants mentioned in the search results for the specified location.
+   - Match the user's food type preference (derived from the search query).
+   - Strictly adhere to the budget constraint mentioned above.
+   - Are available at restaurants mentioned in the search results.
 
-2. For each recommendation, calculate and show:
-   - Total cost for the combination
-   - Cost per person
-   - Whether it fits within the budget
+2. For each recommended combination, calculate and show:
+   - Total cost for the combination (use prices from search results if available, otherwise estimate cautiously or state price is unknown).
+   - Cost per person.
+   - Confirm it fits within the budget (₹{budget}).
 
 3. Analyze the search results provided. Give preference to options that appear to be from Swiggy or Zomato if mentioned, but base recommendations primarily on the information presented.
 
 User Criteria:
 - Search Query Used: {food_query}
-- Budget: ₹{budget} for {num_people} people
+- Budget: ₹{budget} for {num_people} people (MAXIMUM)
 - Specific Restaurant Focus (if any): {restaurant if restaurant else 'None'}
 
 Search Results Provided:
@@ -201,16 +204,17 @@ For each recommended combination, provide in this exact format:
 🏪 Restaurant Name
 📍 Location (if identifiable from results)
 🔗 Source Link (if available)
-💰 Total Cost: ₹X (₹Y per person)
+💰 Total Cost: ₹X (₹Y per person) - MUST BE <= ₹{budget}
 🍽️ Recommended Combination:
-   - Item 1: ₹X
-   - Item 2: ₹Y
-   - Item 3: ₹Z
+   - Item 1: ₹X (or Unknown)
+   - Item 2: ₹Y (or Unknown)
+   - Item 3: ₹Z (or Unknown)
    Total: ₹T
-✨ Why This Combo: (explain why this combination is good value based on search results)
+✨ Why This Combo: (explain why this combination is good value based on search results and budget)
 🎁 Special Offers: (if mentioned in search results)
 
-Separate each recommendation with "---"."""
+Separate each recommendation with "---". If no combinations meet the budget, state that clearly.
+"""
 
         # ---- Using requests library for Together AI API call ----
         url = "https://api.together.xyz/v1/completions"
@@ -313,7 +317,7 @@ if submit:
         rec_cards = recommendations.split('---')
         
         # Create a table to display recommendations
-        table_data = []
+        unfiltered_table_data = []
         for card in rec_cards:
             if card.strip():
                 # Parse the card content
@@ -322,7 +326,8 @@ if submit:
                     'Restaurant': '',
                     'Location': '',
                     'SourceLink': '',
-                    'Total Cost': '',
+                    'Total Cost String': '', # Store raw string for display
+                    'Total Cost Value': float('inf'), # Store numeric value for filtering
                     'Menu Items': [],
                     'Why Recommended': '',
                     'Special Offers': ''
@@ -336,7 +341,16 @@ if submit:
                     elif line.startswith('🔗'):
                         data['SourceLink'] = line.replace('🔗', '').strip()
                     elif line.startswith('💰'):
-                        data['Total Cost'] = line.replace('💰', '').strip()
+                        cost_string = line.replace('💰', '').strip()
+                        data['Total Cost String'] = cost_string
+                        # Extract numeric value from cost string (e.g., "Total Cost: ₹1,800 (₹900 per person)")
+                        match = re.search(r'₹\s*([\d,]+(?:\.\d+)?)', cost_string)
+                        if match:
+                            try:
+                                cost_value = float(match.group(1).replace(',', ''))
+                                data['Total Cost Value'] = cost_value
+                            except ValueError:
+                                pass # Keep as infinity if conversion fails
                     elif line.startswith('🍽️'):
                         menu_items = []
                         for item in lines[lines.index(line)+1:]:
@@ -350,21 +364,28 @@ if submit:
                     elif line.startswith('🎁'):
                         data['Special Offers'] = line.replace('🎁', '').strip()
                 
-                table_data.append(data)
-        
+                unfiltered_table_data.append(data)
+
+        # Filter recommendations based on budget
+        table_data = [data for data in unfiltered_table_data if data['Total Cost Value'] <= budget]
+
         # Display recommendations in a table
         if table_data:
-            st.markdown("### Recommended Food Combinations")
+            st.markdown("### Recommended Food Combinations (Within Budget)") # Updated heading
             for data in table_data:
                 # Construct optional link HTML
                 link_html = f'<div>🔗 <a href="{data["SourceLink"]}" target="_blank">Source Link</a></div>' if data.get("SourceLink") else ""
+                
+                # Clean the cost string for display
+                raw_cost_string = data['Total Cost String']
+                display_cost_string = raw_cost_string.split(" - MUST BE")[0].strip()
                 
                 st.markdown(f"""
                     <div class="recommendation-card">
                         <div class="restaurant-name">{data['Restaurant']}</div>
                         <div>📍 {data['Location']}</div>
                         {link_html}
-                        <div class="price-range">💰 {data['Total Cost']}</div>
+                        <div class="price-range">💰 {display_cost_string}</div> # Display cleaned string
                         <div>🍽️ Menu Items:</div>
                         {"".join([f'<div class="menu-item">{item}</div>' for item in data['Menu Items']])}
                         <div>✨ {data['Why Recommended']}</div>
@@ -372,7 +393,11 @@ if submit:
                     </div>
                 """, unsafe_allow_html=True)
         else:
-            st.warning("No recommendations found matching your criteria. Please try a different search or location.")
+            # Check if there were results that were filtered out
+            if unfiltered_table_data: 
+                 st.warning(f"Found some recommendations, but none strictly met the budget of ₹{budget}. Showing nothing.")
+            else:
+                 st.warning("No recommendations found matching your criteria. Please try a different search or location.")
         
         st.markdown("---")
         st.markdown("*Note: Prices and availability may vary. Please check with the restaurant directly.*") 
