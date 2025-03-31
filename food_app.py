@@ -2,6 +2,10 @@ import streamlit as st
 import os
 from together import Together
 from google_search import perform_google_search
+import google_search
+
+# Add debug log for library version
+st.write(f"DEBUG: Together library version: {together.__version__}")
 
 # Initialize API keys and client
 def get_api_keys():
