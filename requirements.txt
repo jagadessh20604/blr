@@ -1,8 +1,8 @@
 streamlit==1.32.0
-together==0.2.11
+# together==0.2.11 # No longer directly used
 pillow==10.3.0
-requests==2.32.2
+# requests==2.32.2 # Remove duplicate/older version
 beautifulsoup4==4.12.3
 google-api-python-client==2.118.0
-requests==2.32.3
+requests==2.32.3 # Keep the newer version
 # For Google Search API calls 
