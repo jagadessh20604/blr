@@ -12,11 +12,20 @@ def get_api_keys():
         
         # Try to get from Streamlit secrets first
         try:
-            keys = {
-                "TOGETHER_API_KEY": st.secrets["TOGETHER_API_KEY"],
-                "GOOGLE_API_KEY": st.secrets["GOOGLE_API_KEY"],
-                "GOOGLE_CSE_ID": st.secrets["GOOGLE_CSE_ID"]
-            }
+            # Try to get from api_keys section first
+            if "api_keys" in st.secrets:
+                keys = {
+                    "TOGETHER_API_KEY": st.secrets.api_keys.TOGETHER_API_KEY,
+                    "GOOGLE_API_KEY": st.secrets.api_keys.GOOGLE_API_KEY,
+                    "GOOGLE_CSE_ID": st.secrets.api_keys.GOOGLE_CSE_ID
+                }
+            else:
+                # Fallback to root level secrets
+                keys = {
+                    "TOGETHER_API_KEY": st.secrets["TOGETHER_API_KEY"],
+                    "GOOGLE_API_KEY": st.secrets["GOOGLE_API_KEY"],
+                    "GOOGLE_CSE_ID": st.secrets["GOOGLE_CSE_ID"]
+                }
             st.write("Successfully retrieved keys from secrets")
             return keys
         except KeyError as e:
