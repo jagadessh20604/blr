@@ -364,7 +364,7 @@ def perform_google_search(query: str, num_results: int = 10, scrape_details: boo
         'key': api_key,
         'cx': cse_id,
         'q': enhanced_query,
-        'num': min(num_results * 2, 20),  # Request more results to account for filtering
+        'num': min(num_results, 10),  # Use the capped number of results
         'gl': 'in'  # Set location to India
     }
 
@@ -382,7 +382,7 @@ def perform_google_search(query: str, num_results: int = 10, scrape_details: boo
                 'key': api_key,
                 'cx': cse_id,
                 'q': fallback_query,
-                'num': min(num_results * 2, 20)
+                'num': min(num_results, 10)
             }
             response = requests.get(url, params=params)
         
