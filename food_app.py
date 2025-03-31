@@ -224,15 +224,15 @@ For each recommended combination, provide in this exact format:
 Separate each recommendation with "---"."""
 
         # Get AI recommendations
-        response = client.chat.completions.create(
+        response = client.complete(
+            prompt=prompt,
             model="mistralai/Mixtral-8x7B-Instruct-v0.1",
-            messages=[{"role": "user", "content": prompt}],
             max_tokens=1024,
             temperature=0.7,
         )
         
-        if response and hasattr(response, 'choices') and response.choices:
-            return response.choices[0].message.content.strip()
+        if response and hasattr(response, 'output') and response.output:
+            return response.output.choices[0].text.strip()
         else:
             return "Error: No response received from Together AI"
         
