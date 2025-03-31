@@ -1,7 +1,7 @@
 import streamlit as st
 import os
-from together import Together
-import together
+import requests
+import json
 from google_search import perform_google_search
 import google_search
 import importlib.metadata
@@ -78,23 +78,6 @@ if missing_keys:
     """)
     st.stop()
 
-# Initialize Together AI client
-try:
-    os.environ["TOGETHER_API_KEY"] = api_keys["TOGETHER_API_KEY"]
-    client = Together()
-    # Add debug logs
-    # st.write(f"DEBUG: Client type: {type(client)}") # Commented out
-    # st.write(f"DEBUG: Client attributes: {dir(client)}") # Commented out
-except Exception as e:
-    st.error(f"""
-    ⚠️ Error initializing Together AI client!
-    
-    Error details: {str(e)}
-    
-    Please check if your Together API key is valid.
-    """)
-    st.stop()
-
 # Add some basic styling
 st.markdown("""
 <style>
@@ -168,7 +151,7 @@ st.markdown("""
 
 def get_food_recommendations(food_type: str, budget: float, num_people: int, 
                            restaurant: str = None, location: str = None) -> str:
-    """Generate food recommendations using Together AI and Google Search."""
+    """Generate food recommendations using Together AI (via requests) and Google Search."""
     try:
         # Get search results
         search_query = f"Best {food_type} {location or 'Bangalore'}"
@@ -232,19 +215,47 @@ For each recommended combination, provide in this exact format:
 
 Separate each recommendation with "---"."""
 
-        # Get AI recommendations
-        response = client.chat.completions.create(
-            model="mistralai/Mixtral-8x7B-Instruct-v0.1",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1024,
-            temperature=0.7,
-        )
+        # ---- Using requests library for Together AI API call ----
+        url = "https://api.together.xyz/v1/completions"
+
+        payload = {
+            "model": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+            "prompt": prompt,
+            "max_tokens": 1024,
+            "temperature": 0.7,
+            # Add other parameters if needed, e.g., "stop": ["---"]
+        }
+
+        # Get API key securely
+        together_api_key = api_keys.get("TOGETHER_API_KEY")
+        if not together_api_key:
+            st.error("TOGETHER_API_KEY not found in secrets or environment variables.")
+            return "Error: TOGETHER_API_KEY is missing."
+
+        headers = {
+            "accept": "application/json",
+            "content-type": "application/json",
+            "Authorization": f"Bearer {together_api_key}" # Use securely fetched key
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+
+        response_data = response.json()
         
-        if response and hasattr(response, 'choices') and response.choices:
-            return response.choices[0].message.content.strip()
+        if response_data and 'choices' in response_data and response_data['choices']:
+            recommendation_text = response_data['choices'][0].get('text', '').strip()
+            if not recommendation_text:
+                return "Error: Could not extract text from API response."
         else:
-            return "Error: No response received from Together AI"
+            return "Error: Unexpected response format from Together AI."
+
+        return recommendation_text
+        # ---- End of requests library usage ----
         
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error making API request to Together AI: {str(e)}")
+        return f"An error occurred while contacting Together AI: {str(e)}"
     except Exception as e:
         st.error(f"Error in get_food_recommendations: {str(e)}")
         return f"An error occurred: {str(e)}"
