@@ -1,18 +1,20 @@
 import streamlit as st
 import os
 from together import Together
+import together
 from google_search import perform_google_search
 import google_search
+import importlib.metadata
 
-# Add debug log for library version
-st.write(f"DEBUG: Together library version: {together.__version__}")
+# Add debug log for library version using importlib.metadata
+# st.write(f"DEBUG: Together library version: {importlib.metadata.version('together')}") # Commented out
 
 # Initialize API keys and client
 def get_api_keys():
     """Get API keys from Streamlit secrets or environment variables."""
     try:
         # Debug logging
-        st.write("Attempting to access Streamlit secrets...")
+        # st.write("Attempting to access Streamlit secrets...") # Commented out
         
         # Try to get from Streamlit secrets first
         try:
@@ -30,7 +32,7 @@ def get_api_keys():
                     "GOOGLE_API_KEY": st.secrets["GOOGLE_API_KEY"],
                     "GOOGLE_CSE_ID": st.secrets["GOOGLE_CSE_ID"]
                 }
-            st.write("Successfully retrieved keys from secrets")
+            # st.write("Successfully retrieved keys from secrets") # Commented out
             return keys
         except KeyError as e:
             st.warning(f"Could not find secret key: {str(e)}")
@@ -81,8 +83,8 @@ try:
     os.environ["TOGETHER_API_KEY"] = api_keys["TOGETHER_API_KEY"]
     client = Together()
     # Add debug logs
-    st.write(f"DEBUG: Client type: {type(client)}") 
-    st.write(f"DEBUG: Client attributes: {dir(client)}")
+    # st.write(f"DEBUG: Client type: {type(client)}") # Commented out
+    # st.write(f"DEBUG: Client attributes: {dir(client)}") # Commented out
 except Exception as e:
     st.error(f"""
     ⚠️ Error initializing Together AI client!
